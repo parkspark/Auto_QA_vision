@@ -1,0 +1,42 @@
+--- ppt/slides/slide1.xml ---
+비전 기반  게임 QA  자동화 블랙박스 환경 기반의 게임 QA 자동화  를 위한  화면(픽셀)만 보고 플레이어블 캐릭터를 실시간으로 탐지·추적하는 "AI 테스터"
+
+--- ppt/slides/slide2.xml ---
+왜  '화면(Vision)' 이어야 하는가? 블랙박스 테스트의 본질 내부 API나 로그는 게임이 내부적으로 무엇을 하는지 검증하지만, 유저가 실제로 보는 것은 모니터에 그려진 최종 픽셀입니다. 체감형 결함 탐지  내부 좌표는 정상이지만 렌더링 단계에서 캐릭터가 UI에 가려지거나, 프레임 지연이 발생하는 현상은 오직 화면을 봐야 잡을 수 있습니다. 비간섭적(Non-Intrusive) 환경 게임 엔진과 클라이언트에 간섭하지 않으므로, 보안이 철저한 라이브 빌드에도 즉시 투입 가능합니다. ▹ ▹ ▹ 💡 사진 느낌: 좌측은 API/로그(초록색 코드), 우측은 UI나 이펙트에 캐릭터가 가려진 게임 스크린샷 (대비 효과)
+
+--- ppt/slides/slide3.xml ---
+프로젝트  목표 및 타겟 타겟 게임  던전앤파이터 (Dungeon & Fighter) 환경적 난이도 수천 가지 아바타 조합, 화려한 스킬 이펙트, 반투명 UI가 난무하는 극한의 2D 픽셀 노이즈 환경. 최종 목표  1단계 정적 스크린샷 탐지를 넘어, 오직 화면만 보고 "내 캐릭터"를 찾아  동영상에서 실시간으로 추적 하는 것. ▹ ▹ ▹ 💡 사진 느낌: 스킬 이펙트가 터지고 여러 캐릭터가 뒤엉켜 있는 복잡한 던전앤파이터 전투 스크린샷
+
+--- ppt/slides/slide4.xml ---
+시스템  아키텍처 및 기술 스택 탐지 모델 (Detection) YOLO11 & PyTorch  1280 해상도로 학습하여 미세한 닉네임과 캐릭터 박스를 정확히 분리 탐지합니다. 추적 알고리즘 (Tracking) ByteTrack & Hysteresis Lock  프레임 간 대상의 위치를 예측하고 매칭하여 동영상 내 실시간 궤적을 유지합니다. 데이터 파이프라인 Active Learning Loop  Flask/Streamlit 웹앱을 통해 모델이 1차 라벨링하고, 사람이 빠르게 O/X 검수하여 재학습하는 선순환 구조.
+
+--- ppt/slides/slide5.xml ---
+데이터 파이프라인과  능동학습 1. 합성 증강 (Synthesize) 초기 데이터 부족을 해결하기 위해 직업별 스프라이트를 활용해 7,070장의 합성 프레임을 생성하여 기초 모델의 성능을 확보했습니다. 2. Pseudo-labeling 검수 루프 영상 프레임 추출 후, 학습된 모델이 1차로 라벨링을 수행합니다. 인간은 처음부터 그리는 것이 아니라  O/X/? 검수만 진행 하여 라벨링 비용을 획기적으로 낮췄습니다.
+
+--- ppt/slides/slide6.xml ---
+Challenge 1:  '내 캐릭터' 는 어떻게 찾는가? 문제:  화면 내의 파티원과 '내 캐릭터'는 시각적으로 완벽히 동일하여 구분이 불가합니다. 해결 (후처리 정책):  모델은 순수하게 character와 user_id(닉네임) 박스만 모두 탐지합니다. 가장 신뢰도가 높은 닉네임 바운딩 박스를 기준으로,  그 바로 아래 위치한 캐릭터를 '내 캐릭터'로 묶어내는 A안 후처리 로직 을 설계했습니다. 원문 크기 ~70x24px의 작은 닉네임을 잡기 위해 학습 해상도(imgsz)를 1280으로 끌어올렸습니다. ▹ ▹ ▹ ▹ 💡 사진 느낌: 두 명의 똑같이 생긴 픽셀 캐릭터 중, 한 캐릭터 머리 위의 '닉네임' 박스에 하이라이트/바운딩 박스가 쳐진 확대 스크린샷
+
+--- ppt/slides/slide7.xml ---
+Challenge 2: 추적의  진동   (ID Switch) 제어 68% ID Switch 감소율 Hysteresis Lock (이력 현상 잠금) 도입 화려한  스킬 사용 시  순간적으로 탐지가 끊기며 추적 ID가 바뀌는(튀는) 고질적 병목이 있었습니다.  단순 탐지를 넘어 coast-grace 및 challenge-frames 로직을 적용한 Hysteresis 락을 구현하여, 대상이 일시적으로 가려지더라도 ID를 잃지 않고 락온을 유지합니다. 결과: ID 스위치 276건 ➔ 88건으로 안정화
+
+--- ppt/slides/slide8.xml ---
+Challenge 3: 하드웨어 한계 극복,  '청크 그라인딩' 문제 GPU 풀로드 학습 시 전력이 순간 차단되며 강제 재부팅되는 정전형 크래시 발생. 전력 제한 설정으로도 해결되지 않았습니다. 해결:  학습을 2~8 Epoch 단위로 잘게 끊어서 실행하는  청크 그라인딩(Chunk Grinding)  기법을 고안했습니다. Epoch 경계에서 학습을 일시 정지하고, 가중치·옵티마이저·EMA·LR 스케줄을 `resume`로 완벽히 복원하여 이어붙이는 방식으로 최종 80 Epoch 완주에 성공했습니다. ▹ ▹ ▹
+
+--- ppt/slides/slide9.xml ---
+동영상 추적 라이브 데모 ByteTrack과 Hysteresis 락이 적용된 현역 v3 모델입니다.  화려한 이펙트 속에서도 흔들림 없이 "내 캐릭터"를 락온합니다. 💡 배경 사진 느낌: 동영상 플레이어 UI가 오버레이된 역동적인 게임 전투 화면 (실제 시연 시 이 슬라이드에서 웹앱으로 화면 전환)
+
+--- ppt/slides/slide10.xml ---
+버전 히스토리 및  성능 트레이드오프 모델 버전 업데이트 내용 정적 val mAP50 동영상 추적률 v1 초기 실사(817) + 합성 프레임(2,000) 0.856 - v2 1·2차 라벨 검수 반영 및 재학습 0.923 0.840 v3 (현재 모델) 영상 프레임 721장 추가 (동영상 도메인 적용) 0.931 0.858 (↑) v4 (예정) 영상 프레임 세밀 검수 (NPC 오탐 등 107건 제거) - - 데이터 기반 인사이트:  v2에서 v3로 영상 도메인 적응 시, 동영상 추적률은 상승했으나 모션블러가 포함된 pseudo-label의 한계로 정적 Recall은 소폭 하락(0.858 ➔ 0.834)했습니다. 무조건 큰 데이터가 답이 아님을 정량적으로 증명합니다.
+
+--- ppt/slides/slide11.xml ---
+기대 효과 및  향후 확장 계획 사이드 이펙트 사전 차단 사람의 눈을 대신해 유저가 체감할 수 있는 예기치 못한 버그를 사전 탐지. 렌더링 지연 정량 리포트 프레임별 위치와 모델 신뢰도 데이터를 활용하여 게임 클라이언트 렌더링 지연 리포트화. 하드웨어 확충 & v4 고도화 PSU 교체 후 v4 대규모 학습 진행 및 가려진 파티원 Recall 한계 보강. 💡 사진 느낌: AI/로봇이 게임을 테스트하는 컨셉 💡 사진 느낌: 지연율(Latency)을 보여주는 미래지향적 그래프 💡 사진 느낌: 고성능 파워서플라이(PSU) 또는 하드웨어 업그레이드
+
+--- ppt/slides/slide12.xml ---
+Questions & Answers 비전 기반 QA 자동화가 가져올 새로운 품질의 기준,  경청해 주셔서 감사합니다.
+
+--- ppt/slides/slide13.xml ---
+Image Sources https://www.cnet.com/a/img/resize/625545176b6096d16f050fb3c1f664e462b09696/hub/2025/03/04/022ef851-3b4c-4261-9eaf-799cd2c1cd2b/split-fiction-20250302222937.jpg?auto=webp&width=1200 Source:  www.cnet.com https://i.ytimg.com/vi/Qz7_-PUDsgk/maxresdefault.jpg Source:  play.google.com https://miro.medium.com/1*_-ZV0dkuRGVUI2lWsdIR7Q.png Source:  statistician-in-stilettos.medium.com https://external-preview.redd.it/i-built-a-led-load-display-for-my-rack-details-in-comments-v0-fN7vqAbnY8ZB6siyvzbBQ9F42552Ll5ug9fDRcfZOgw.jpg?width=1080&crop=smart&auto=webp&s=0b5074f77e4babfa6ae5b2a459f9a186c1901ce6 Source:  www.reddit.com https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2025/04/shutterstock_2272394045.jpg?w=1600&h=900&fit=crop Source:  www.howtogeek.com https://static.vecteezy.com/system/resources/thumbnails/080/848/567/large/this-futuristic-ui-features-a-moving-predictive-analytics-graph-with-colorful-sine-waves-and-shifting-phase-space-diagrams-designed-for-advanced-signal-monitoring-and-data-forecasting-video.jpg Source:  www.vecteezy.com
+
+--- ppt/slides/slide14.xml ---
+Image Sources https://cdn.mos.cms.futurecdn.net/YU9Dfa3tFnxyxr9iy2F4DD.jpg Source:  www.pcgamer.com https://p16-seeyou-useast8.capcutcdn-us.com/tos-useast8-i-2zwwjm3azk-tx2/3bdfcbd98e3b4b2ab46cb51fbc3e876a~tplv-2zwwjm3azk-image.image Source:  dreamina.capcut.com
+
