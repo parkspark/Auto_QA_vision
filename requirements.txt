@@ -1,0 +1,29 @@
+# MINI_DATA_PROJECT 의존성
+# Python 3.12 (.venv). 스크립트/웹앱 import 기준으로 구성.
+#
+# torch/torchvision은 GPU별 CUDA 빌드가 달라 여기서 버전을 고정하지 않는다.
+#   - 원본 PC(RTX 5090, Blackwell): cu128 필수
+#   - 이 PC(RTX 2070 SUPER, Turing / 드라이버 560.94): cu126 권장
+#   설치 예:
+#   uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+
+# 핵심: 탐지/학습/추적
+ultralytics
+
+# 영상/이미지 처리
+opencv-python
+Pillow
+numpy
+
+# 웹앱 (webapp/app.py, video_app.py)
+flask
+
+# 포트폴리오 소개 페이지 (portfolio_app.py)
+streamlit
+
+# 보고서 노트북 (scripts/build_report*.py)
+pandas
+matplotlib
+nbformat
+nbclient
+ipython

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>던파 캐릭터 추적 (영상)</title>
+<style>
+  body { font-family: sans-serif; background: #1e1e1e; color: #eee; margin: 0; padding: 24px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #aaa; font-size: 13px; margin-bottom: 16px; }
+  #drop {
+    border: 2px dashed #555; border-radius: 10px; padding: 36px; text-align: center;
+    color: #bbb; cursor: pointer; transition: .15s; background: #262626;
+  }
+  #drop.hover { border-color: #3a7afe; background: #2c3550; color: #fff; }
+  #drop b { color: #6aa3ff; }
+  #stage { margin-top: 18px; display: none; }
+  #view { width: 100%; max-width: 1100px; border-radius: 8px; background: #000; display: block; }
+  .bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 12px 0; }
+  .pill { background: #2a2a2a; border: 1px solid #444; border-radius: 999px; padding: 6px 14px; font-size: 13px; }
+  .pill b { color: #6aa3ff; }
+  #status { color: #fa0; }
+  #status.done { color: #3c3; }
+  button, .btn {
+    background: #3a7afe; color: #fff; border: none; border-radius: 6px;
+    padding: 9px 16px; font-size: 14px; cursor: pointer; text-decoration: none; display: inline-block;
+  }
+  button:disabled { background: #555; cursor: default; }
+  .muted { color: #888; font-size: 12px; }
+  label.pace { font-size: 13px; color: #ccc; }
+</style>
+</head>
+<body>
+  <h1>던파 캐릭터 추적 — 영상 업로드</h1>
+  <div class="sub">v3 모델 + ByteTrack + 락 정책(hysteresis). 빨간 <b style="color:#f55">MINE</b> 박스가 추정한 "내 캐릭터"입니다.</div>
+
+  <div id="drop">
+    <p>여기로 동영상을 <b>드래그앤드롭</b> 하거나 클릭해서 선택<br>
+    <span class="muted">.mp4 / .avi 등 · 추적은 GPU 추론이라 길이에 비례해 시간이 걸립니다</span></p>
+    <input id="file" type="file" accept="video/*" hidden>
+  </div>
+  <div style="margin-top:10px">
+    <label class="pace"><input type="checkbox" id="pace" checked> 실시간 속도로 재생 (끄면 처리속도로 빠르게)</label>
+  </div>
+
+  <div id="stage">
+    <div class="bar">
+      <span id="status">업로드 중…</span>
+      <span class="pill">프레임 <b id="m_frames">–</b></span>
+      <span class="pill">내 캐릭터 추적률 <b id="m_loc">–</b></span>
+      <span class="pill">캐릭터 탐지율 <b id="m_char">–</b></span>
+      <span class="pill">ID 스위치 <b id="m_sw">–</b></span>
+      <a id="dl" class="btn" style="display:none">주석 영상 다운로드 (.mp4)</a>
+      <button id="again" style="display:none;background:#555">다른 영상</button>
+    </div>
+    <img id="view" alt="추적 결과">
+  </div>
+
+<script>
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('file');
+const stage = document.getElementById('stage');
+const view = document.getElementById('view');
+const statusEl = document.getElementById('status');
+let pollTimer = null;
+
+drop.onclick = () => fileInput.click();
+['dragover','dragenter'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('hover'); }));
+['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('hover'); }));
+drop.addEventListener('drop', ev => { if (ev.dataTransfer.files.length) handle(ev.dataTransfer.files[0]); });
+fileInput.onchange = () => { if (fileInput.files.length) handle(fileInput.files[0]); };
+document.getElementById('again').onclick = () => location.reload();
+
+async function handle(f) {
+  drop.style.display = 'none';
+  stage.style.display = 'block';
+  statusEl.textContent = '업로드 중…';
+  const fd = new FormData();
+  fd.append('video', f);
+  let token;
+  try {
+    const res = await fetch('/upload', { method: 'POST', body: fd });
+    const j = await res.json();
+    if (j.error) { statusEl.textContent = '오류: ' + j.error; return; }
+    token = j.token;
+  } catch (e) { statusEl.textContent = '업로드 실패: ' + e; return; }
+
+  statusEl.textContent = '추적 중… (스트리밍 재생)';
+  const pace = document.getElementById('pace').checked ? '1' : '0';
+  view.src = `/stream/${token}?pace=${pace}`;
+
+  pollTimer = setInterval(async () => {
+    try {
+      const m = await (await fetch(`/metrics/${token}`)).json();
+      if (m.status === 'done' && m.metrics) {
+        clearInterval(pollTimer);
+        const x = m.metrics;
+        document.getElementById('m_frames').textContent = x.frames;
+        document.getElementById('m_loc').textContent = (x.my_located_rate*100).toFixed(1) + '%';
+        document.getElementById('m_char').textContent = (x.any_char_rate*100).toFixed(1) + '%';
+        document.getElementById('m_sw').textContent = x.id_switches;
+        statusEl.textContent = '완료 ✓';
+        statusEl.classList.add('done');
+        const dl = document.getElementById('dl');
+        dl.href = `/download/${token}`; dl.style.display = 'inline-block';
+        document.getElementById('again').style.display = 'inline-block';
+      }
+    } catch (e) {}
+  }, 1000);
+}
+</script>
+</body>
+</html>

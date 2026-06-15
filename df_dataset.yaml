@@ -1,0 +1,6 @@
+path: C:/Users/park/Desktop/MINI_DATA_PROJECT/datasets/df
+train: images/train
+val: images/val
+names:
+  0: character
+  1: user_id

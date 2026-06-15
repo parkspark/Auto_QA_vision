@@ -1,0 +1,91 @@
+# ============================================================
+# DNF Vision — .gitignore
+# 원칙: 코드·문서·가벼운 포트폴리오 자산만 올린다.
+# 대용량 데이터·모델 가중치·생성물·환경은 제외
+# (재생성 가능하거나 GitHub 100MB 파일 한도 초과).
+# 주의: .gitignore는 '같은 줄 끝 주석'을 지원하지 않으므로 주석은 별도 줄에만 둔다.
+# ============================================================
+
+# ---- Python 환경 / 캐시 ----
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.ipynb_checkpoints/
+
+# ---- Node / Next.js (web/frontend/.gitignore 와 중복 안전망) ----
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# ---- 대용량 데이터셋 (파이프라인으로 재생성 가능) ----
+# datasets/ = 5GB+ (원본 영상 + YOLO 데이터셋)
+datasets/
+# labeled/ = 600MB+ (원본 스크린샷 + labelme JSON)
+labeled/
+# DF_character_dataset/ = 합성 소스 스프라이트
+DF_character_dataset/
+# reviews/ = 라벨 검수 사이클 산출물
+reviews/
+# 결과물
+outputs/
+# 사진
+hardware/
+
+# ---- 모델 / 학습 산출물 ----
+# runs/ = 학습 결과 + 가중치(best.pt 포함), models/ = 사전학습 가중치
+runs/
+models/
+*.pt
+*.pth
+*.onnx
+*.engine
+*.npy
+
+# ---- 로그 / 백업 / 임시 ----
+logs/
+backups/
+web/backend/_work/
+*.log
+
+# ---- 대용량 영상 (240MB mp4는 GitHub가 거부) ----
+# 작은 데모 1개만 예외로 포함
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+
+# 큰 압축 백업
+*.zip
+
+# ---- 로컬 도구 / 비밀값 ----
+# .claude/ = 로컬 실행 설정(launch.json 등, 머신 경로 포함)
+.claude/
+.env
+.env.*
+*.local
+
+CLAUDE.md
+README_prev.md
+
+# ---- 에디터 / OS ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ============================================================
+# 의도적으로 '포함'되는 것 (위 규칙에 안 걸림):
+#   scripts/  web/  *.py  *.md  requirements.txt  df_dataset.yaml  *.bat
+#   reports/*.ipynb 및 reports/*_assets/*.png
+#   outputs/*.json · outputs/track_color_demo.mp4
+#   hardware/*.jpg
+# ============================================================

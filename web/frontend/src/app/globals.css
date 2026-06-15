@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+/* ----------------------------------------------------------- 디자인 토큰 */
+:root {
+  --background: #0a0e14;
+  --surface: #121821;
+  --surface-2: #18212e;
+  --border: #1f2a37;
+  --foreground: #e6edf3;
+  --muted: #8b98a5;
+
+  --brand: #00e5a8;   /* 네온 틸 — 포인트 */
+  --accent: #3b82f6;  /* 블루 */
+  --char: #ef4444;    /* character 박스 (빨강) */
+  --uid: #22d3ee;     /* user_id 박스 (시안) */
+  --mine: #22c55e;    /* 내 캐릭터 (초록) */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-accent: var(--accent);
+  --color-char: var(--char);
+  --color-uid: var(--uid);
+  --color-mine: var(--mine);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background:
+    radial-gradient(1100px 600px at 80% -10%, rgba(0, 229, 168, 0.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, rgba(59, 130, 246, 0.10), transparent 55%),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ----------------------------------------------------------- 유틸 컴포넌트 */
+@layer components {
+  .card {
+    background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .btn-brand {
+    background: linear-gradient(135deg, var(--brand), #16b894);
+    color: #03130d;
+    font-weight: 600;
+    border-radius: 12px;
+    transition: filter 0.15s ease, transform 0.15s ease;
+  }
+  .btn-brand:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .btn-ghost {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--foreground);
+    transition: background 0.15s ease;
+  }
+  .btn-ghost:hover { background: rgba(255, 255, 255, 0.04); }
+}
+
+/* 그라데이션 텍스트 */
+.text-gradient {
+  background: linear-gradient(120deg, var(--brand), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fadeUp 0.6s ease both; }
+
+/* 얇은 스크롤바 */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
